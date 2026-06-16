@@ -47,7 +47,7 @@ async function verifyTavily(key) {
   if (!res.ok) throw new Error(`유효하지 않은 키 (${res.status})`)
 }
 
-function KeyField({ label, hint, color, link, value, status, msg, showPw, onValueChange, onToggleShow, onVerify }) {
+function KeyField({ label, hint, color, link, value, status, msg, showPw, onValueChange, onToggleShow, onVerify, onDelete }) {
   const btnColor  = status === 'ok' ? 'var(--green)' : status === 'error' ? 'var(--pink)' : 'var(--text2)'
   const btnBorder = status === 'ok' ? 'var(--green)' : status === 'error' ? 'var(--pink)' : 'var(--border)'
 
@@ -86,6 +86,16 @@ function KeyField({ label, hint, color, link, value, status, msg, showPw, onValu
             : '확인 & 저장'
           }
         </button>
+        {value && (
+          <button
+            className="btn btn-ghost"
+            onClick={onDelete}
+            title="키 삭제"
+            style={{ padding:'0 8px', flexShrink:0, borderColor:'var(--border)', color:'var(--text3)' }}
+          >
+            <X size={14} />
+          </button>
+        )}
       </div>
       {msg && (
         <p style={{ fontSize:11, marginTop:3, color: status === 'ok' ? 'var(--green)' : 'var(--pink)' }}>
@@ -127,6 +137,13 @@ export default function ApiSettings({ onClose }) {
     }
   }
 
+  const makeDelete = (setter, storageKey) => () => {
+    setter({ value: '', status: 'idle', msg: '' })
+    const current = readStored()
+    delete current[storageKey]
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(current))
+  }
+
   const handleOrModel = (val) => { setOrModel(val); patch({ orModel: val }) }
 
   const handleSaveCoupang = () => {
@@ -160,6 +177,7 @@ export default function ApiSettings({ onClose }) {
             onValueChange={v => setGemini(s => ({ ...s, value: v, status: 'idle', msg: '' }))}
             onToggleShow={() => toggleShow('gemini')}
             onVerify={makeVerify(gemini, setGemini, verifyGemini, 'gemini')}
+            onDelete={makeDelete(setGemini, 'gemini')}
           />
 
           <KeyField
@@ -169,6 +187,7 @@ export default function ApiSettings({ onClose }) {
             onValueChange={v => setOpenrouter(s => ({ ...s, value: v, status: 'idle', msg: '' }))}
             onToggleShow={() => toggleShow('openrouter')}
             onVerify={makeVerify(openrouter, setOpenrouter, verifyOpenRouter, 'openrouter')}
+            onDelete={makeDelete(setOpenrouter, 'openrouter')}
           />
 
           {openrouter.value && (
@@ -187,13 +206,33 @@ export default function ApiSettings({ onClose }) {
             onValueChange={v => setTavily(s => ({ ...s, value: v, status: 'idle', msg: '' }))}
             onToggleShow={() => toggleShow('tavily')}
             onVerify={makeVerify(tavily, setTavily, verifyTavily, 'tavily')}
+            onDelete={makeDelete(setTavily, 'tavily')}
           />
 
           {/* 쿠팡 파트너스 */}
           <div style={{ borderTop:'1px solid var(--border)', paddingTop:18 }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
               <span style={{ fontSize:12, fontWeight:600, color:'var(--text2)' }}>🛒 쿠팡 파트너스 API</span>
-              <a href="https://partners.coupang.com" target="_blank" rel="noreferrer" style={{ fontSize:11, color:'#e84141' }}>발급받기 →</a>
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                {(coupangAccess.value || coupangSecret.value) && (
+                  <button
+                    className="btn btn-ghost"
+                    title="쿠팡 키 삭제"
+                    onClick={() => {
+                      setCoupangAccess({ value: '', status: 'idle', msg: '' })
+                      setCoupangSecret({ value: '', status: 'idle', msg: '' })
+                      const current = readStored()
+                      delete current.coupangAccess
+                      delete current.coupangSecret
+                      localStorage.setItem(STORAGE_KEY, JSON.stringify(current))
+                    }}
+                    style={{ padding:'2px 8px', fontSize:11, color:'var(--text3)', borderColor:'var(--border)' }}
+                  >
+                    <X size={12} /> 삭제
+                  </button>
+                )}
+                <a href="https://partners.coupang.com" target="_blank" rel="noreferrer" style={{ fontSize:11, color:'#e84141' }}>발급받기 →</a>
+              </div>
             </div>
 
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
