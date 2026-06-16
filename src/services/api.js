@@ -1,23 +1,35 @@
 // ── Gemini ────────────────────────────────────────────────────────────────────
+const GEMINI_MODELS = [
+  'gemini-2.0-flash',
+  'gemini-2.0-flash-lite',
+  'gemini-1.5-flash-latest',
+  'gemini-1.5-flash',
+  'gemini-1.5-pro-latest',
+]
+
 export async function callGemini(apiKey, prompt, imageBase64 = null) {
   const parts = [{ text: prompt }]
   if (imageBase64) {
     parts.unshift({ inline_data: { mime_type: 'image/jpeg', data: imageBase64 } })
   }
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts }] }),
-    }
-  )
-  if (!res.ok) {
+
+  for (const model of GEMINI_MODELS) {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts }] }),
+      }
+    )
+    if (res.status === 404) continue
     if (res.status === 429) throw new Error('Gemini 요청 한도 초과 — 잠시 후 다시 시도해주세요 (무료 티어: 분당 15회 제한)')
-    throw new Error(`Gemini error: ${res.status}`)
+    if (!res.ok) throw new Error(`Gemini error: ${res.status}`)
+    const data = await res.json()
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || ''
   }
-  const data = await res.json()
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+
+  throw new Error('사용 가능한 Gemini 모델이 없습니다. API 키를 확인해주세요.')
 }
 
 // ── OpenRouter ────────────────────────────────────────────────────────────────
