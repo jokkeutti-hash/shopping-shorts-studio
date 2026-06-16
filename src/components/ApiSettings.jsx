@@ -17,7 +17,14 @@ export function useApiKeys() {
 }
 
 async function verifyGemini(key) {
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`)
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: 'hi' }] }] }),
+    }
+  )
   if (!res.ok) {
     const d = await res.json().catch(() => ({}))
     throw new Error(d.error?.message || `오류 ${res.status}`)
