@@ -5,6 +5,7 @@ import { IMAGE_STYLES, PLATFORMS } from '../services/constants'
 export default function ContentStudio({ product, category, onGenerate, loading }) {
   const [imageStyle, setImageStyle] = useState(IMAGE_STYLES[0])
   const [selectedPlatforms, setSelectedPlatforms] = useState(PLATFORMS.map(p => p.id))
+  const [platformDurations, setPlatformDurations] = useState({})
   const [autoStyle, setAutoStyle] = useState(true)
   const [uploadedImage, setUploadedImage] = useState(null)
 
@@ -13,6 +14,12 @@ export default function ContentStudio({ product, category, onGenerate, loading }
       prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
     )
   }
+
+  const setDuration = (platformId, sec) => {
+    setPlatformDurations(prev => ({ ...prev, [platformId]: sec }))
+  }
+
+  const getDuration = (p) => platformDurations[p.id] || p.maxSec
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0]
@@ -23,7 +30,9 @@ export default function ContentStudio({ product, category, onGenerate, loading }
   }
 
   const handleGenerate = () => {
-    const platforms = PLATFORMS.filter(p => selectedPlatforms.includes(p.id))
+    const platforms = PLATFORMS
+      .filter(p => selectedPlatforms.includes(p.id))
+      .map(p => ({ ...p, maxSec: getDuration(p) }))
     onGenerate({ imageStyle, platforms, imageBase64: uploadedImage, productUrl: product.purchaseLink })
   }
 
@@ -122,23 +131,51 @@ export default function ContentStudio({ product, category, onGenerate, loading }
             <button className="btn btn-ghost" style={{ padding:'3px 8px', fontSize:11 }} onClick={() => setSelectedPlatforms([])}>해제</button>
           </div>
         </div>
-        <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
           {PLATFORMS.map(p => {
             const active = selectedPlatforms.includes(p.id)
+            const dur = getDuration(p)
             return (
-              <button
-                key={p.id}
-                className="btn btn-ghost"
-                style={{
-                  padding:'6px 12px', fontSize:12,
-                  borderColor: active ? p.color : 'var(--border)',
-                  color: active ? p.color : 'var(--text3)',
-                  background: active ? `${p.color}18` : 'var(--bg3)',
-                }}
-                onClick={() => togglePlatform(p.id)}
-              >
-                {p.emoji} {p.name}
-              </button>
+              <div key={p.id} style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+                <button
+                  className="btn btn-ghost"
+                  style={{
+                    padding:'6px 12px', fontSize:12, flexShrink:0,
+                    borderColor: active ? p.color : 'var(--border)',
+                    color: active ? p.color : 'var(--text3)',
+                    background: active ? `${p.color}18` : 'var(--bg3)',
+                  }}
+                  onClick={() => togglePlatform(p.id)}
+                >
+                  {p.emoji} {p.name}
+                </button>
+
+                {active && p.allowedSecs.length > 1 && (
+                  <div style={{ display:'flex', gap:4 }}>
+                    {p.allowedSecs.map(s => {
+                      const sel = dur === s
+                      return (
+                        <button
+                          key={s}
+                          onClick={() => setDuration(p.id, s)}
+                          style={{
+                            padding:'3px 9px', fontSize:11, fontWeight:600, borderRadius:6, cursor:'pointer',
+                            border: `1px solid ${sel ? p.color : 'var(--border)'}`,
+                            color: sel ? p.color : 'var(--text3)',
+                            background: sel ? `${p.color}18` : 'var(--bg3)',
+                          }}
+                        >
+                          {s}초
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {active && p.allowedSecs.length === 1 && (
+                  <span style={{ fontSize:11, color:'var(--text3)' }}>{p.maxSec}초 고정</span>
+                )}
+              </div>
             )
           })}
         </div>
