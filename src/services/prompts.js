@@ -49,6 +49,8 @@ ${searchContext ? `\n참고 검색 데이터:\n${searchContext}` : ''}
 대상 플랫폼:
 ${platformList}
 
+scenes 배열은 대본을 장면 단위로 분리해 각 씬마다 imagePrompt와 videoPrompt를 생성하세요 (플랫폼 길이에 따라 보통 3~6개).
+
 다음 JSON 형식으로 정확히 출력하세요. JSON 외 텍스트 없이:
 {
   "platforms": {
@@ -57,8 +59,14 @@ ${platformList}
       "script": "전체 대본 (카메라 지시 + 나레이션 + 자막 통합, ${p.maxSec}초 분량)",
       "narration": "나레이션 텍스트만 (TTS용, 카메라지시 없이)",
       "hashtags": ["해시태그1", "해시태그2"],
-      "imagePrompt": "핵심 정지 이미지 1장 프롬프트 — 영어, ${imageStyle.desc} 스타일, 상품을 가장 매력적으로 보여주는 단일 장면 (Midjourney/DALL-E용)",
-      "videoPrompt": "위 imagePrompt 이미지를 그대로 살아 움직이게 만드는 모션 프롬프트 — 영어, 동일 장면에서 발생하는 카메라 움직임·물체 동작·파티클·빛 효과만 묘사, 새 장면 전환 없음 (Runway/Kling용)",
+      "scenes": [
+        {
+          "no": 1,
+          "desc": "씬 설명 (한국어, 1문장 — 대본의 해당 장면 요약)",
+          "imagePrompt": "이 씬의 정지 이미지 프롬프트 (영어, ${imageStyle.desc} 스타일, 장면의 핵심 시각 요소 묘사 — Midjourney/DALL-E용)",
+          "videoPrompt": "위 imagePrompt 이미지가 살아 움직이는 모션 프롬프트 (영어, 동일 장면에서의 카메라 움직임·물체 동작·파티클·빛 효과만, 새 장면 전환 없음 — Runway/Kling용)"
+        }
+      ],
       "platformTip": "${p.tips}"
     }`).join(',\n    ')}
   }

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Copy, Check, Image, Film, Mic, FileText, Hash } from 'lucide-react'
+import { Copy, Check, ChevronDown, ChevronUp, Image, Film, Mic, FileText, Hash } from 'lucide-react'
 import { PLATFORMS } from '../services/constants'
 
 function CopyBox({ label, content, icon: Icon, color, noBorder }) {
@@ -32,6 +32,41 @@ function CopyBox({ label, content, icon: Icon, color, noBorder }) {
   )
 }
 
+function SceneCard({ scene, index, isLast }) {
+  const [open, setOpen] = useState(index === 0)
+
+  return (
+    <div style={{ borderBottom: isLast ? 'none' : '1px solid var(--border)' }}>
+      <div
+        onClick={() => setOpen(o => !o)}
+        style={{
+          padding:'10px 14px', display:'flex', alignItems:'center', gap:10, cursor:'pointer',
+          background: open ? 'rgba(124,92,255,0.06)' : 'var(--bg)',
+          borderBottom: open ? '1px solid var(--border)' : 'none',
+        }}
+      >
+        <span style={{
+          fontSize:11, fontWeight:800, color:'#fff', background:'var(--accent)',
+          borderRadius:6, padding:'2px 7px', flexShrink:0,
+        }}>
+          씬 {scene.no}
+        </span>
+        <span style={{ fontSize:12, color:'var(--text2)', flex:1 }}>{scene.desc}</span>
+        {open ? <ChevronUp size={14} color="var(--text3)" /> : <ChevronDown size={14} color="var(--text3)" />}
+      </div>
+
+      {open && (
+        <div>
+          <CopyBox label="📸 정지 이미지 (Midjourney · DALL-E)" content={scene.imagePrompt} icon={Image} color="var(--pink)" noBorder />
+          <div style={{ borderTop:'1px solid var(--border)' }}>
+            <CopyBox label="🎬 모션 영상 — 위 이미지를 움직이기 (Runway · Kling)" content={scene.videoPrompt} icon={Film} color="var(--orange)" noBorder />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function PlatformResult({ platformId, data }) {
   const platform = PLATFORMS.find(p => p.id === platformId)
   if (!platform || !data) return null
@@ -59,37 +94,20 @@ export default function PlatformResult({ platformId, data }) {
           </div>
         )}
 
-        {data.script    && <CopyBox label="대본 (큐시트)"              content={data.script}      icon={FileText} color="var(--text2)"   />}
-        {data.narration && <CopyBox label="나레이션 (TTS용)"            content={data.narration}   icon={Mic}      color="var(--accent2)" />}
+        {data.script    && <CopyBox label="대본 (큐시트)"    content={data.script}    icon={FileText} color="var(--text2)"   />}
+        {data.narration && <CopyBox label="나레이션 (TTS용)" content={data.narration} icon={Mic}      color="var(--accent2)" />}
 
-        {/* 이미지 + 영상 프롬프트 */}
-        {(data.imagePrompt || data.videoPrompt) && (
+        {/* 씬별 이미지/영상 프롬프트 */}
+        {data.scenes && data.scenes.length > 0 && (
           <div style={{ border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
-            <div style={{ padding:'8px 12px', background:'var(--bg3)', borderBottom:'1px solid var(--border)', fontSize:11, fontWeight:700, color:'var(--text3)' }}>
-              🎨 AI 생성 프롬프트
+            <div style={{ padding:'8px 14px', background:'var(--bg3)', borderBottom:'1px solid var(--border)', fontSize:11, fontWeight:700, color:'var(--text3)', display:'flex', alignItems:'center', gap:6 }}>
+              <Image size={12} color="var(--pink)" />
+              <Film size={12} color="var(--orange)" />
+              씬별 이미지 &amp; 모션 프롬프트 ({data.scenes.length}개 씬)
             </div>
-            <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
-              {data.imagePrompt && (
-                <CopyBox
-                  label="정지 이미지 (Midjourney · DALL-E)"
-                  content={data.imagePrompt}
-                  icon={Image}
-                  color="var(--pink)"
-                  noBorder
-                />
-              )}
-              {data.videoPrompt && (
-                <div style={{ borderTop:'1px solid var(--border)' }}>
-                  <CopyBox
-                    label="모션 영상 — 위 이미지를 움직이기 (Runway · Kling)"
-                    content={data.videoPrompt}
-                    icon={Film}
-                    color="var(--orange)"
-                    noBorder
-                  />
-                </div>
-              )}
-            </div>
+            {data.scenes.map((scene, i) => (
+              <SceneCard key={i} scene={scene} index={i} isLast={i === data.scenes.length - 1} />
+            ))}
           </div>
         )}
 
