@@ -19,7 +19,7 @@ export default function ProductDiscovery({ keys, onSelectProduct }) {
     try {
       let results = []
       if (keys.tavily) {
-        const query = customTopic ? `${customTopic} 구매후기 추천 2025` : category.searchQuery
+        const query = customTopic ? `${customTopic} 구매후기 추천 ${new Date().getFullYear()}` : category.searchQuery
         results = await tavilySearch(keys.tavily, query, 5)
       }
       const prompt = buildProductDiscoveryPrompt(

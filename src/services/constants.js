@@ -78,19 +78,21 @@ export const PLATFORMS = [
   },
 ]
 
+const Y = new Date().getFullYear()
+
 export const CATEGORIES = [
-  { id: 'beauty', name: '뷰티', emoji: '💄', searchQuery: '2025 뷰티 신상품 구매후기 베스트' },
-  { id: 'fashion', name: '패션', emoji: '👗', searchQuery: '2025 패션 트렌드 인기 상품 후기' },
-  { id: 'food', name: '식품', emoji: '🍱', searchQuery: '2025 식품 베스트셀러 후기 인기' },
-  { id: 'electronics', name: '전자기기', emoji: '📱', searchQuery: '2025 가성비 전자제품 추천 후기' },
-  { id: 'home', name: '생활/인테리어', emoji: '🏠', searchQuery: '2025 생활용품 인테리어 인기 추천' },
-  { id: 'baby', name: '육아', emoji: '👶', searchQuery: '2025 육아용품 인기 베스트 후기' },
-  { id: 'health', name: '건강/영양', emoji: '💊', searchQuery: '2025 건강식품 영양제 인기 추천' },
-  { id: 'pet', name: '반려동물', emoji: '🐾', searchQuery: '2025 반려동물 용품 인기 추천' },
-  { id: 'sports', name: '스포츠', emoji: '🏋️', searchQuery: '2025 운동 스포츠용품 인기 후기' },
-  { id: 'travel', name: '여행', emoji: '✈️', searchQuery: '2025 여행 용품 인기 추천 후기' },
-  { id: 'book', name: '도서/교육', emoji: '📚', searchQuery: '2025 베스트셀러 도서 추천 인기' },
-  { id: 'game', name: '게임/취미', emoji: '🎮', searchQuery: '2025 게임 취미 용품 인기 추천' },
+  { id: 'beauty', name: '뷰티', emoji: '💄', searchQuery: `${Y} 뷰티 신상품 구매후기 베스트` },
+  { id: 'fashion', name: '패션', emoji: '👗', searchQuery: `${Y} 패션 트렌드 인기 상품 후기` },
+  { id: 'food', name: '식품', emoji: '🍱', searchQuery: `${Y} 식품 베스트셀러 후기 인기` },
+  { id: 'electronics', name: '전자기기', emoji: '📱', searchQuery: `${Y} 가성비 전자제품 추천 후기` },
+  { id: 'home', name: '생활/인테리어', emoji: '🏠', searchQuery: `${Y} 생활용품 인테리어 인기 추천` },
+  { id: 'baby', name: '육아', emoji: '👶', searchQuery: `${Y} 육아용품 인기 베스트 후기` },
+  { id: 'health', name: '건강/영양', emoji: '💊', searchQuery: `${Y} 건강식품 영양제 인기 추천` },
+  { id: 'pet', name: '반려동물', emoji: '🐾', searchQuery: `${Y} 반려동물 용품 인기 추천` },
+  { id: 'sports', name: '스포츠', emoji: '🏋️', searchQuery: `${Y} 운동 스포츠용품 인기 후기` },
+  { id: 'travel', name: '여행', emoji: '✈️', searchQuery: `${Y} 여행 용품 인기 추천 후기` },
+  { id: 'book', name: '도서/교육', emoji: '📚', searchQuery: `${Y} 베스트셀러 도서 추천 인기` },
+  { id: 'game', name: '게임/취미', emoji: '🎮', searchQuery: `${Y} 게임 취미 용품 인기 추천` },
 ]
 
 export const IMAGE_STYLES = [

@@ -35,7 +35,7 @@ export default function App() {
       // Tavily로 상품 URL 또는 키워드 검색
       let searchContext = ''
       if (keys.tavily) {
-        const query = productUrl || selectedProduct.purchaseLink || `${selectedProduct.name} 후기 구매 2025`
+        const query = productUrl || selectedProduct.purchaseLink || `${selectedProduct.name} 후기 구매 ${new Date().getFullYear()}`
         const results = await tavilySearch(keys.tavily, query, 3)
         searchContext = results.map(r => `${r.title}: ${r.content?.slice(0, 150)}`).join('\n')
       }
