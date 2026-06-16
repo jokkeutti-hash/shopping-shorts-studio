@@ -15,6 +15,7 @@ export default function App() {
   const [selectedProduct, setSelectedProduct] = useState(null)
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [results, setResults] = useState(null)
+  const [activePlatform, setActivePlatform] = useState(null)
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState('')
 
@@ -64,6 +65,7 @@ export default function App() {
       const clean = raw.replace(/```json|```/g, '').trim()
       const parsed = JSON.parse(clean)
       setResults({ platforms: parsed.platforms, selectedPlatforms: platforms })
+      setActivePlatform(platforms[0]?.id || null)
       setActiveTab('results')
     } catch (e) {
       setError(`생성 오류: ${e.message}`)
@@ -160,26 +162,46 @@ export default function App() {
         )}
 
         {activeTab === 'results' && results && (
-          <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+          <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
               <p style={{ fontSize:13, color:'var(--text2)', fontWeight:600 }}>
                 {results.selectedPlatforms.length}개 플랫폼 콘텐츠 생성 완료
               </p>
-              <button
-                className="btn btn-ghost"
-                style={{ fontSize:12 }}
-                onClick={() => setActiveTab('studio')}
-              >
+              <button className="btn btn-ghost" style={{ fontSize:12 }} onClick={() => setActiveTab('studio')}>
                 다시 생성
               </button>
             </div>
-            {results.selectedPlatforms.map(platform => (
+
+            {/* 플랫폼 탭 */}
+            <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+              {results.selectedPlatforms.map(p => {
+                const active = activePlatform === p.id
+                return (
+                  <button
+                    key={p.id}
+                    className="btn btn-ghost"
+                    style={{
+                      padding:'8px 14px', fontSize:13,
+                      borderColor: active ? p.color : 'var(--border)',
+                      color: active ? p.color : 'var(--text3)',
+                      background: active ? `${p.color}18` : 'var(--bg3)',
+                    }}
+                    onClick={() => setActivePlatform(p.id)}
+                  >
+                    {p.emoji} {p.name}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* 선택된 플랫폼 결과 */}
+            {activePlatform && (
               <PlatformResult
-                key={platform.id}
-                platformId={platform.id}
-                data={results.platforms[platform.id]}
+                key={activePlatform}
+                platformId={activePlatform}
+                data={results.platforms[activePlatform]}
               />
-            ))}
+            )}
           </div>
         )}
 

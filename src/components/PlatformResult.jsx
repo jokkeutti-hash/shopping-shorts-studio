@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { Copy, Check, ChevronDown, ChevronUp, Image, Film, Mic, FileText, Hash } from 'lucide-react'
+import { Copy, Check, Image, Film, Mic, FileText, Hash } from 'lucide-react'
 import { PLATFORMS } from '../services/constants'
 
-function CopyBox({ label, content, icon: Icon, color }) {
+function CopyBox({ label, content, icon: Icon, color, noBorder }) {
   const [copied, setCopied] = useState(false)
 
   const copy = () => {
@@ -12,7 +12,7 @@ function CopyBox({ label, content, icon: Icon, color }) {
   }
 
   return (
-    <div style={{ background:'var(--bg)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
+    <div style={{ background:'var(--bg)', ...(noBorder ? {} : { border:'1px solid var(--border)', borderRadius:8 }), overflow:'hidden' }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 12px', background:'var(--bg3)', borderBottom:'1px solid var(--border)' }}>
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           {Icon && <Icon size={13} color={color || 'var(--text3)'} />}
@@ -33,59 +33,74 @@ function CopyBox({ label, content, icon: Icon, color }) {
 }
 
 export default function PlatformResult({ platformId, data }) {
-  const [expanded, setExpanded] = useState(true)
   const platform = PLATFORMS.find(p => p.id === platformId)
   if (!platform || !data) return null
 
-  const hashtagText = Array.isArray(data.hashtags) ? data.hashtags.map(h => h.startsWith('#') ? h : `#${h}`).join(' ') : data.hashtags
+  const hashtagText = Array.isArray(data.hashtags)
+    ? data.hashtags.map(h => h.startsWith('#') ? h : `#${h}`).join(' ')
+    : data.hashtags
 
   return (
     <div className="card fade-in" style={{ border:`1px solid ${platform.color}30`, padding:0, overflow:'hidden' }}>
       {/* 헤더 */}
-      <div
-        style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:`${platform.color}15`, cursor:'pointer' }}
-        onClick={() => setExpanded(e => !e)}
-      >
+      <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:`${platform.color}15` }}>
         <span style={{ fontSize:20 }}>{platform.emoji}</span>
-        <div style={{ flex:1 }}>
+        <div>
           <span style={{ fontWeight:700, fontSize:14, color:platform.color }}>{platform.name}</span>
           <span style={{ fontSize:11, color:'var(--text3)', marginLeft:8 }}>{platform.ratio} · {platform.maxSec}초</span>
         </div>
-        {expanded ? <ChevronUp size={16} color="var(--text3)" /> : <ChevronDown size={16} color="var(--text3)" />}
       </div>
 
-      {expanded && (
-        <div style={{ padding:16, display:'flex', flexDirection:'column', gap:10 }}>
-          {/* 훅 */}
-          {data.hook && (
-            <div style={{ padding:'10px 14px', background:`${platform.color}10`, border:`1px solid ${platform.color}30`, borderRadius:8, fontSize:14, fontWeight:700, color:platform.color }}>
-              🪝 {data.hook}
+      <div style={{ padding:16, display:'flex', flexDirection:'column', gap:10 }}>
+        {/* 훅 */}
+        {data.hook && (
+          <div style={{ padding:'10px 14px', background:`${platform.color}10`, border:`1px solid ${platform.color}30`, borderRadius:8, fontSize:14, fontWeight:700, color:platform.color }}>
+            🪝 {data.hook}
+          </div>
+        )}
+
+        {data.script    && <CopyBox label="대본 (큐시트)"              content={data.script}      icon={FileText} color="var(--text2)"   />}
+        {data.narration && <CopyBox label="나레이션 (TTS용)"            content={data.narration}   icon={Mic}      color="var(--accent2)" />}
+
+        {/* 이미지 + 영상 프롬프트 */}
+        {(data.imagePrompt || data.videoPrompt) && (
+          <div style={{ border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
+            <div style={{ padding:'8px 12px', background:'var(--bg3)', borderBottom:'1px solid var(--border)', fontSize:11, fontWeight:700, color:'var(--text3)' }}>
+              🎨 AI 생성 프롬프트
             </div>
-          )}
-
-          {/* 대본 */}
-          {data.script && <CopyBox label="대본 (큐시트)" content={data.script} icon={FileText} color="var(--text2)" />}
-
-          {/* 나레이션 */}
-          {data.narration && <CopyBox label="나레이션 (TTS용)" content={data.narration} icon={Mic} color="var(--accent2)" />}
-
-          {/* 이미지 프롬프트 */}
-          {data.imagePrompt && <CopyBox label="이미지 프롬프트 (Midjourney · DALL-E)" content={data.imagePrompt} icon={Image} color="var(--pink)" />}
-
-          {/* 영상 프롬프트 */}
-          {data.videoPrompt && <CopyBox label="영상 프롬프트 (Runway · Kling)" content={data.videoPrompt} icon={Film} color="var(--orange)" />}
-
-          {/* 해시태그 */}
-          {hashtagText && <CopyBox label={`해시태그 (${platform.hashtagCount}개 권장)`} content={hashtagText} icon={Hash} color="var(--green)" />}
-
-          {/* 플랫폼 팁 */}
-          {data.platformTip && (
-            <div style={{ padding:'8px 12px', background:'var(--bg3)', borderRadius:8, fontSize:11, color:'var(--text3)', borderLeft:'3px solid var(--accent)' }}>
-              💡 {data.platformTip}
+            <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
+              {data.imagePrompt && (
+                <CopyBox
+                  label="정지 이미지 (Midjourney · DALL-E)"
+                  content={data.imagePrompt}
+                  icon={Image}
+                  color="var(--pink)"
+                  noBorder
+                />
+              )}
+              {data.videoPrompt && (
+                <div style={{ borderTop:'1px solid var(--border)' }}>
+                  <CopyBox
+                    label="모션 영상 — 위 이미지를 움직이기 (Runway · Kling)"
+                    content={data.videoPrompt}
+                    icon={Film}
+                    color="var(--orange)"
+                    noBorder
+                  />
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+
+        {hashtagText && <CopyBox label={`해시태그 (${platform.hashtagCount}개 권장)`} content={hashtagText} icon={Hash} color="var(--green)" />}
+
+        {data.platformTip && (
+          <div style={{ padding:'8px 12px', background:'var(--bg3)', borderRadius:8, fontSize:11, color:'var(--text3)', borderLeft:'3px solid var(--accent)' }}>
+            💡 {data.platformTip}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
