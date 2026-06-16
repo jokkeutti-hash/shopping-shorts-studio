@@ -9,7 +9,7 @@ import { buildContentPrompt } from './services/prompts'
 import { IMAGE_STYLES } from './services/constants'
 
 export default function App() {
-  const [keys] = useApiKeys()
+  const [keys, , refreshKeys] = useApiKeys()
   const [showApiSettings, setShowApiSettings] = useState(false)
   const [activeTab, setActiveTab] = useState('discover') // discover | studio | results
   const [selectedProduct, setSelectedProduct] = useState(null)
@@ -191,7 +191,7 @@ export default function App() {
         )}
       </main>
 
-      {showApiSettings && <ApiSettings onClose={() => setShowApiSettings(false)} />}
+      {showApiSettings && <ApiSettings onClose={() => { setShowApiSettings(false); refreshKeys() }} />}
     </div>
   )
 }

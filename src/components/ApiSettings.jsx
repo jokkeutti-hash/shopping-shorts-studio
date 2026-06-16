@@ -1,46 +1,142 @@
-import { useState, useEffect } from 'react'
-import { Key, X, Eye, EyeOff, Check } from 'lucide-react'
+import { useState } from 'react'
+import { Key, X, Eye, EyeOff, Check, RefreshCw } from 'lucide-react'
 import { OPENROUTER_MODELS } from '../services/constants'
 
 const STORAGE_KEY = 'sss_api_keys'
 
+const readStored = () => {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') }
+  catch { return {} }
+}
+
 export function useApiKeys() {
-  const [keys, setKeys] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
-    } catch { return {} }
-  })
+  const [keys, setKeys] = useState(readStored)
+  const save = (newKeys) => { setKeys(newKeys); localStorage.setItem(STORAGE_KEY, JSON.stringify(newKeys)) }
+  const refresh = () => setKeys(readStored())
+  return [keys, save, refresh]
+}
 
-  const save = (newKeys) => {
-    setKeys(newKeys)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newKeys))
+async function verifyGemini(key) {
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`)
+  if (!res.ok) {
+    const d = await res.json().catch(() => ({}))
+    throw new Error(d.error?.message || `오류 ${res.status}`)
   }
+}
 
-  return [keys, save]
+async function verifyOpenRouter(key) {
+  const res = await fetch('https://openrouter.ai/api/v1/auth/key', {
+    headers: { Authorization: `Bearer ${key}` },
+  })
+  if (!res.ok) throw new Error(`유효하지 않은 키 (${res.status})`)
+}
+
+async function verifyTavily(key) {
+  const res = await fetch('https://api.tavily.com/search', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ api_key: key, query: '테스트', max_results: 1, search_depth: 'basic' }),
+  })
+  if (!res.ok) throw new Error(`유효하지 않은 키 (${res.status})`)
+}
+
+function KeyField({ label, hint, color, link, value, status, msg, showPw, onValueChange, onToggleShow, onVerify }) {
+  const btnColor  = status === 'ok' ? 'var(--green)' : status === 'error' ? 'var(--pink)' : 'var(--text2)'
+  const btnBorder = status === 'ok' ? 'var(--green)' : status === 'error' ? 'var(--pink)' : 'var(--border)'
+
+  return (
+    <div>
+      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
+        <label style={{ fontSize:12, fontWeight:600, color:'var(--text2)' }}>{label}</label>
+        {link && <a href={link} target="_blank" rel="noreferrer" style={{ fontSize:11, color }}>발급받기 →</a>}
+      </div>
+      <div style={{ display:'flex', gap:6 }}>
+        <div style={{ position:'relative', flex:1 }}>
+          <input
+            type={showPw ? 'text' : 'password'}
+            placeholder={`${label} 입력...`}
+            value={value}
+            onChange={e => onValueChange(e.target.value)}
+            style={{ paddingRight:36, width:'100%' }}
+          />
+          <button
+            onClick={onToggleShow}
+            style={{ position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:'var(--text3)' }}
+          >
+            {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
+          </button>
+        </div>
+        <button
+          className="btn btn-ghost"
+          onClick={onVerify}
+          disabled={!value.trim() || status === 'checking'}
+          style={{ padding:'0 10px', fontSize:12, flexShrink:0, minWidth:82, justifyContent:'center', borderColor: btnBorder, color: btnColor }}
+        >
+          {status === 'checking'
+            ? <><RefreshCw size={12} style={{ animation:'spin 0.7s linear infinite' }} /> 확인중</>
+            : status === 'ok'
+            ? <><Check size={12} /> 확인됨</>
+            : '확인 & 저장'
+          }
+        </button>
+      </div>
+      {msg && (
+        <p style={{ fontSize:11, marginTop:3, color: status === 'ok' ? 'var(--green)' : 'var(--pink)' }}>
+          {msg}
+        </p>
+      )}
+      <p style={{ fontSize:11, color:'var(--text3)', marginTop:3 }}>{hint}</p>
+    </div>
+  )
 }
 
 export default function ApiSettings({ onClose }) {
-  const [keys, saveKeys] = useApiKeys()
-  const [form, setForm] = useState({ ...keys })
-  const [show, setShow] = useState({})
+  const stored = readStored()
+  const init = (val) => ({ value: val || '', status: val ? 'saved' : 'idle', msg: '' })
 
-  const toggle = (k) => setShow(s => ({ ...s, [k]: !s[k] }))
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  const [gemini, setGemini]               = useState(init(stored.gemini))
+  const [openrouter, setOpenrouter]       = useState(init(stored.openrouter))
+  const [orModel, setOrModel]             = useState(stored.orModel || 'openai/gpt-4o')
+  const [tavily, setTavily]               = useState(init(stored.tavily))
+  const [coupangAccess, setCoupangAccess] = useState(init(stored.coupangAccess))
+  const [coupangSecret, setCoupangSecret] = useState(init(stored.coupangSecret))
+  const [show, setShow]                   = useState({})
 
-  const handleSave = () => {
-    saveKeys(form)
-    onClose()
+  const toggleShow = (k) => setShow(s => ({ ...s, [k]: !s[k] }))
+
+  const patch = (update) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...readStored(), ...update }))
   }
 
-  const fields = [
-    { key: 'gemini', label: 'Gemini API Key', hint: '필수 — 대본생성 + 이미지분석', color: '#4285f4', link: 'https://aistudio.google.com/apikey' },
-    { key: 'openrouter', label: 'OpenRouter API Key', hint: '선택 — GPT-4o, Claude 등 다른 모델', color: '#7c5cff', link: 'https://openrouter.ai/keys' },
-    { key: 'tavily', label: 'Tavily API Key', hint: '선택 — 실시간 상품 검색', color: '#00e5a0', link: 'https://app.tavily.com' },
-  ]
+  const makeVerify = (state, setter, verifyFn, storageKey) => async () => {
+    if (!state.value.trim()) return
+    setter(s => ({ ...s, status: 'checking', msg: '' }))
+    try {
+      await verifyFn(state.value.trim())
+      patch({ [storageKey]: state.value.trim() })
+      setter(s => ({ ...s, status: 'ok', msg: '✅ 연결 확인 & 저장됨' }))
+    } catch (e) {
+      setter(s => ({ ...s, status: 'error', msg: `❌ ${e.message}` }))
+    }
+  }
+
+  const handleOrModel = (val) => { setOrModel(val); patch({ orModel: val }) }
+
+  const handleSaveCoupang = () => {
+    const a = coupangAccess.value.trim()
+    const s = coupangSecret.value.trim()
+    if (!a || !s) return
+    patch({ coupangAccess: a, coupangSecret: s })
+    setCoupangAccess(prev => ({ ...prev, status: 'saved', msg: '✅ 저장됨' }))
+    setCoupangSecret(prev => ({ ...prev, status: 'saved', msg: '' }))
+  }
+
+  const coupangSaved = coupangAccess.status === 'saved'
 
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000 }}>
-      <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:16, padding:24, width:480, maxWidth:'95vw' }}>
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'flex-start', justifyContent:'center', zIndex:1000, overflowY:'auto', padding:'24px 0' }}>
+      <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:16, padding:24, width:500, maxWidth:'95vw' }}>
+
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
             <Key size={18} color="var(--accent2)" />
@@ -49,47 +145,109 @@ export default function ApiSettings({ onClose }) {
           <button className="btn btn-ghost" style={{ padding:'4px 8px' }} onClick={onClose}><X size={16} /></button>
         </div>
 
-        <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
-          {fields.map(f => (
-            <div key={f.key}>
-              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
-                <label style={{ fontSize:12, fontWeight:600, color:'var(--text2)' }}>{f.label}</label>
-                <a href={f.link} target="_blank" rel="noreferrer" style={{ fontSize:11, color:f.color }}>발급받기 →</a>
-              </div>
-              <div style={{ position:'relative' }}>
-                <input
-                  type={show[f.key] ? 'text' : 'password'}
-                  placeholder={`${f.label} 입력...`}
-                  value={form[f.key] || ''}
-                  onChange={e => set(f.key, e.target.value)}
-                  style={{ paddingRight:36 }}
-                />
-                <button
-                  onClick={() => toggle(f.key)}
-                  style={{ position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:'var(--text3)' }}
-                >
-                  {show[f.key] ? <EyeOff size={14} /> : <Eye size={14} />}
-                </button>
-              </div>
-              <p style={{ fontSize:11, color:'var(--text3)', marginTop:3 }}>{f.hint}</p>
-            </div>
-          ))}
+        <div style={{ display:'flex', flexDirection:'column', gap:18 }}>
+          <KeyField
+            label="Gemini API Key" hint="필수 — 대본생성 + 이미지분석"
+            color="#4285f4" link="https://aistudio.google.com/apikey"
+            value={gemini.value} status={gemini.status} msg={gemini.msg} showPw={show.gemini}
+            onValueChange={v => setGemini(s => ({ ...s, value: v, status: 'idle', msg: '' }))}
+            onToggleShow={() => toggleShow('gemini')}
+            onVerify={makeVerify(gemini, setGemini, verifyGemini, 'gemini')}
+          />
 
-          {form.openrouter && (
+          <KeyField
+            label="OpenRouter API Key" hint="선택 — GPT-4o, Claude 등 다른 모델"
+            color="#7c5cff" link="https://openrouter.ai/keys"
+            value={openrouter.value} status={openrouter.status} msg={openrouter.msg} showPw={show.openrouter}
+            onValueChange={v => setOpenrouter(s => ({ ...s, value: v, status: 'idle', msg: '' }))}
+            onToggleShow={() => toggleShow('openrouter')}
+            onVerify={makeVerify(openrouter, setOpenrouter, verifyOpenRouter, 'openrouter')}
+          />
+
+          {openrouter.value && (
             <div>
               <label style={{ fontSize:12, fontWeight:600, color:'var(--text2)', display:'block', marginBottom:4 }}>OpenRouter 모델</label>
-              <select value={form.orModel || 'openai/gpt-4o'} onChange={e => set('orModel', e.target.value)}>
+              <select value={orModel} onChange={e => handleOrModel(e.target.value)}>
                 {OPENROUTER_MODELS.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
               </select>
             </div>
           )}
+
+          <KeyField
+            label="Tavily API Key" hint="선택 — 실시간 상품 검색"
+            color="#00e5a0" link="https://app.tavily.com"
+            value={tavily.value} status={tavily.status} msg={tavily.msg} showPw={show.tavily}
+            onValueChange={v => setTavily(s => ({ ...s, value: v, status: 'idle', msg: '' }))}
+            onToggleShow={() => toggleShow('tavily')}
+            onVerify={makeVerify(tavily, setTavily, verifyTavily, 'tavily')}
+          />
+
+          {/* 쿠팡 파트너스 */}
+          <div style={{ borderTop:'1px solid var(--border)', paddingTop:18 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+              <span style={{ fontSize:12, fontWeight:600, color:'var(--text2)' }}>🛒 쿠팡 파트너스 API</span>
+              <a href="https://partners.coupang.com" target="_blank" rel="noreferrer" style={{ fontSize:11, color:'#e84141' }}>발급받기 →</a>
+            </div>
+
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              <div>
+                <label style={{ fontSize:11, color:'var(--text3)', display:'block', marginBottom:4 }}>Access Key</label>
+                <div style={{ position:'relative' }}>
+                  <input
+                    type={show.coupangAccess ? 'text' : 'password'}
+                    placeholder="Access Key 입력..."
+                    value={coupangAccess.value}
+                    onChange={e => setCoupangAccess(s => ({ ...s, value: e.target.value, status: 'idle', msg: '' }))}
+                    style={{ paddingRight:36, width:'100%' }}
+                  />
+                  <button onClick={() => toggleShow('coupangAccess')} style={{ position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:'var(--text3)' }}>
+                    {show.coupangAccess ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize:11, color:'var(--text3)', display:'block', marginBottom:4 }}>Secret Key</label>
+                <div style={{ display:'flex', gap:6 }}>
+                  <div style={{ position:'relative', flex:1 }}>
+                    <input
+                      type={show.coupangSecret ? 'text' : 'password'}
+                      placeholder="Secret Key 입력..."
+                      value={coupangSecret.value}
+                      onChange={e => setCoupangSecret(s => ({ ...s, value: e.target.value, status: 'idle', msg: '' }))}
+                      style={{ paddingRight:36, width:'100%' }}
+                    />
+                    <button onClick={() => toggleShow('coupangSecret')} style={{ position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:'var(--text3)' }}>
+                      {show.coupangSecret ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                  <button
+                    className="btn btn-ghost"
+                    onClick={handleSaveCoupang}
+                    disabled={!coupangAccess.value.trim() || !coupangSecret.value.trim()}
+                    style={{
+                      padding:'0 10px', fontSize:12, flexShrink:0, minWidth:64, justifyContent:'center',
+                      borderColor: coupangSaved ? 'var(--green)' : 'var(--border)',
+                      color: coupangSaved ? 'var(--green)' : 'var(--text2)',
+                    }}
+                  >
+                    {coupangSaved ? <><Check size={12} /> 저장됨</> : '저장'}
+                  </button>
+                </div>
+              </div>
+
+              {coupangAccess.msg && (
+                <p style={{ fontSize:11, color:'var(--green)' }}>{coupangAccess.msg}</p>
+              )}
+              <p style={{ fontSize:11, color:'var(--text3)' }}>
+                선택 — 쿠팡 파트너스 수익 링크 생성용 · 브라우저 정책상 연결 확인 불가, 저장만 지원
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div style={{ display:'flex', gap:8, marginTop:20, justifyContent:'flex-end' }}>
-          <button className="btn btn-ghost" onClick={onClose}>취소</button>
-          <button className="btn btn-primary" onClick={handleSave}>
-            <Check size={14} /> 저장
-          </button>
+        <div style={{ display:'flex', justifyContent:'flex-end', marginTop:22 }}>
+          <button className="btn btn-ghost" onClick={onClose}>닫기</button>
         </div>
       </div>
     </div>
