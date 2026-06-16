@@ -27,7 +27,7 @@ ${resultsText}
 }`
 }
 
-export function buildContentPrompt({ product, platforms, imageStyle, category, searchContext }) {
+export function buildContentPrompt({ product, platforms, imageStyle, category, searchContext, hasImage }) {
   const platformList = platforms.map(p => `- ${p.name} (${p.tone}, 해시태그 ${p.hashtagCount}개, ${p.maxSec}초)`).join('\n')
 
   return `당신은 쇼핑 쇼츠 전문 콘텐츠 크리에이터입니다. 구매 전환율을 극대화하는 콘텐츠를 만드세요.
@@ -43,6 +43,12 @@ export function buildContentPrompt({ product, platforms, imageStyle, category, s
 ${product.purchaseLink ? `- 구매 링크: ${product.purchaseLink}` : ''}
 ${product.imageUrl ? `- 상품 이미지: ${product.imageUrl}` : ''}
 ${searchContext ? `\n참고 검색 데이터:\n${searchContext}` : ''}
+${hasImage ? `
+📸 업로드된 실제 상품 이미지가 첨부되어 있습니다. 반드시 아래를 수행하세요:
+- 이미지에서 상품의 색상·소재·디자인·형태·특이점을 직접 분석하세요
+- 대본의 나레이션과 카메라 지시에 분석한 시각 정보를 구체적으로 반영하세요 (예: "선명한 코발트블루 컬러의 크로스백", "지퍼 디테일이 돋보이는 앞면 클로즈업")
+- 각 씬의 imagePrompt는 이 실제 이미지의 스타일·색감·구도를 기반으로 생성하세요
+- OpenRouter 사용 시에는 이미지를 볼 수 없으므로 상품명과 카테고리 기반으로 최대한 구체적으로 작성하세요` : ''}
 
 이미지 스타일: ${imageStyle.name} (${imageStyle.desc})
 

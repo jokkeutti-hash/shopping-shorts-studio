@@ -52,6 +52,7 @@ export default function App() {
         imageStyle: finalStyle,
         category: selectedCategory,
         searchContext,
+        hasImage: !!imageBase64,
       })
 
       const raw = await callAI({
