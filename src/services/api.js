@@ -12,7 +12,10 @@ export async function callGemini(apiKey, prompt, imageBase64 = null) {
       body: JSON.stringify({ contents: [{ parts }] }),
     }
   )
-  if (!res.ok) throw new Error(`Gemini error: ${res.status}`)
+  if (!res.ok) {
+    if (res.status === 429) throw new Error('Gemini 요청 한도 초과 — 잠시 후 다시 시도해주세요 (무료 티어: 분당 15회 제한)')
+    throw new Error(`Gemini error: ${res.status}`)
+  }
   const data = await res.json()
   return data.candidates?.[0]?.content?.parts?.[0]?.text || ''
 }
